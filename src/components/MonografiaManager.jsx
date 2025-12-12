@@ -548,8 +548,8 @@ export default function MonografiaManager() {
                         <div className="flex items-center gap-3">
                             <BookOpen className="text-indigo-600" size={28} />
                             <div>
-                                <h1 className="text-2xl font-bold text-gray-800">PRISM - Monografia UTFPR</h1>
-                                <p className="text-gray-600 text-sm">Padrão de Rótulos e Interfaces para Sistemas Médicos</p>
+                                <h1 className="text-2xl font-bold text-gray-800">Thesis Manager</h1>
+                                <p className="text-gray-600 text-sm">Um organizador de monografias e teses</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
