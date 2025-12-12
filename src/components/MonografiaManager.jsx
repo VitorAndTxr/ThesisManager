@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { CheckCircle2, Circle, Clock, AlertCircle, FileText, Calendar, Target, BookOpen, Edit2, Save, X, Plus, GripVertical, Eye, Pencil, Download, Upload, Trash2 } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, AlertCircle, FileText, Calendar, Target, BookOpen, Edit2, Save, X, Plus, GripVertical, Eye, Pencil, Download, Upload, Trash2, Cloud, CloudOff, RefreshCw, Link, Unlink } from 'lucide-react';
 import { useLocalStorage, exportData, importData, clearAllData } from '../hooks/useLocalStorage';
+import { useFileSync } from '../hooks/useFileSync';
 import { initialChapters, initialTasks, initialProjects } from '../data/initialData';
 
 export default function MonografiaManager() {
@@ -38,6 +39,38 @@ export default function MonografiaManager() {
     const [editingProject, setEditingProject] = useState(null);
     const [editProjectForm, setEditProjectForm] = useState({});
     const [showSettings, setShowSettings] = useState(false);
+
+    // Sincronização com arquivo externo (nuvem)
+    const fileSync = useFileSync();
+
+    // Funções de sincronização com nuvem
+    const handleCloudConnect = async () => {
+        const data = await fileSync.openFile();
+        if (data) {
+            if (data.chapters) setChapters(data.chapters);
+            if (data.tasks) setTasks(data.tasks);
+            if (data.projects) setProjects(data.projects);
+        }
+    };
+
+    const handleCloudCreate = async () => {
+        const data = { chapters, tasks, projects, savedAt: new Date().toISOString() };
+        await fileSync.createFile(data);
+    };
+
+    const handleCloudSave = async () => {
+        const data = { chapters, tasks, projects, savedAt: new Date().toISOString() };
+        await fileSync.saveToFile(data);
+    };
+
+    const handleCloudLoad = async () => {
+        const data = await fileSync.loadFromFile();
+        if (data) {
+            if (data.chapters) setChapters(data.chapters);
+            if (data.tasks) setTasks(data.tasks);
+            if (data.projects) setProjects(data.projects);
+        }
+    };
 
     // Funções de export/import
     const handleExport = () => {
@@ -531,29 +564,109 @@ export default function MonografiaManager() {
                     </div>
 
                     {showSettings && (
-                        <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                            <h3 className="font-semibold text-gray-700 mb-2 text-sm">💾 Gerenciar Dados</h3>
-                            <div className="flex flex-wrap gap-2">
-                                <button
-                                    onClick={handleExport}
-                                    className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-1 text-sm"
-                                >
-                                    <Download size={14} /> Exportar Backup
-                                </button>
-                                <label className="px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 flex items-center gap-1 text-sm cursor-pointer">
-                                    <Upload size={14} /> Importar Backup
-                                    <input type="file" accept=".json" onChange={handleImport} className="hidden" />
-                                </label>
-                                <button
-                                    onClick={handleClearData}
-                                    className="px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 flex items-center gap-1 text-sm"
-                                >
-                                    <Trash2 size={14} /> Limpar Dados
-                                </button>
+                        <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200 space-y-4">
+                            {/* Sincronização com Nuvem */}
+                            <div>
+                                <h3 className="font-semibold text-gray-700 mb-2 text-sm flex items-center gap-2">
+                                    <Cloud size={16} className="text-blue-500" />
+                                    ☁️ Sincronização com Nuvem
+                                </h3>
+                                {fileSync.isSupported ? (
+                                    <>
+                                        {fileSync.isConnected ? (
+                                            <div className="space-y-2">
+                                                <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 p-2 rounded">
+                                                    <Cloud size={16} />
+                                                    <span>Vinculado: <strong>{fileSync.fileName}</strong></span>
+                                                    {fileSync.lastSync && (
+                                                        <span className="text-xs text-gray-500">
+                                                            (Última sync: {fileSync.lastSync.toLocaleTimeString('pt-BR')})
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="flex flex-wrap gap-2">
+                                                    <button
+                                                        onClick={handleCloudSave}
+                                                        disabled={fileSync.isSyncing}
+                                                        className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-1 text-sm disabled:opacity-50"
+                                                    >
+                                                        <Upload size={14} /> Salvar na Nuvem
+                                                    </button>
+                                                    <button
+                                                        onClick={handleCloudLoad}
+                                                        disabled={fileSync.isSyncing}
+                                                        className="px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 flex items-center gap-1 text-sm disabled:opacity-50"
+                                                    >
+                                                        <Download size={14} /> Carregar da Nuvem
+                                                    </button>
+                                                    <button
+                                                        onClick={fileSync.disconnect}
+                                                        className="px-3 py-1.5 bg-gray-500 text-white rounded hover:bg-gray-600 flex items-center gap-1 text-sm"
+                                                    >
+                                                        <Unlink size={14} /> Desvincular
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-2">
+                                                <p className="text-xs text-gray-600">
+                                                    Salve seus dados em uma pasta sincronizada (Google Drive, OneDrive, Dropbox, etc.)
+                                                </p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    <button
+                                                        onClick={handleCloudCreate}
+                                                        className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-1 text-sm"
+                                                    >
+                                                        <Plus size={14} /> Criar Arquivo Sync
+                                                    </button>
+                                                    <button
+                                                        onClick={handleCloudConnect}
+                                                        className="px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 flex items-center gap-1 text-sm"
+                                                    >
+                                                        <Link size={14} /> Abrir Arquivo Existente
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {fileSync.error && (
+                                            <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+                                                ⚠️ {fileSync.error}
+                                                <button onClick={fileSync.clearError} className="ml-2 text-red-500 hover:text-red-700">✕</button>
+                                            </div>
+                                        )}
+                                    </>
+                                ) : (
+                                    <p className="text-xs text-amber-700 bg-amber-50 p-2 rounded">
+                                        ⚠️ Sincronização não disponível. Use Chrome, Edge ou Opera para esta funcionalidade.
+                                    </p>
+                                )}
                             </div>
-                            <p className="text-xs text-gray-500 mt-2">
-                                💡 Seus dados são salvos automaticamente no navegador (localStorage)
-                            </p>
+
+                            {/* Backup Local */}
+                            <div>
+                                <h3 className="font-semibold text-gray-700 mb-2 text-sm">💾 Backup Local</h3>
+                                <div className="flex flex-wrap gap-2">
+                                    <button
+                                        onClick={handleExport}
+                                        className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-1 text-sm"
+                                    >
+                                        <Download size={14} /> Exportar Backup
+                                    </button>
+                                    <label className="px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 flex items-center gap-1 text-sm cursor-pointer">
+                                        <Upload size={14} /> Importar Backup
+                                        <input type="file" accept=".json" onChange={handleImport} className="hidden" />
+                                    </label>
+                                    <button
+                                        onClick={handleClearData}
+                                        className="px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 flex items-center gap-1 text-sm"
+                                    >
+                                        <Trash2 size={14} /> Limpar Dados
+                                    </button>
+                                </div>
+                                <p className="text-xs text-gray-500 mt-2">
+                                    💡 Seus dados são salvos automaticamente no navegador (localStorage)
+                                </p>
+                            </div>
                         </div>
                     )}
 
